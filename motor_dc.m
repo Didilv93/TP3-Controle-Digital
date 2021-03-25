@@ -36,10 +36,8 @@ Gz = zpk(minreal(tf(nGz, dGz, Ts)));
 
 %% Teste de Observabilidade:
 
-% Usando funcao do Matlab:
+% Validando se o sistema é observável:
 Ob = obsv(A,C);
-% Passo a passo:
-Ob = [C; C*A];
 if (size(A,1)-rank(Ob)==0)
     disp('O sistema e observavel.');
 end
@@ -70,33 +68,15 @@ L1 = (inv([0 1; Ts -1])*[(2+alphacz(2))  (-1+alphacz(3))]');
 % Conferindo os polos da MF:
 eig(A - L1*C)
 
-%% Projeto pelo Metodo 2 - Formula Canonica de Observacao
 
-% Forma canonica observavel:
-A2 = [-dGz(2) 1; -dGz(3) 0];
-B2 = [nGz(2) nGz(3)]';
-C2 = [1 0];
-Sys2 = ss(A2, B2, C2, 0, Ts);
+%% Projeto pela Formula de Ackerman
 
-L2 = [alphacz(2)-dGz(2)     alphacz(3)-dGz(3)]';
-
-% Conferindo os polos da MF:
-eig(A2 - L2*C2)
-
-
-%% Projeto pelo Metodo 3 - Formula de Ackerman
-
-% Usando funcao do Matlab:
-L3 = acker(A', C', [p1z p2z])'; 
-
-% Alternativamente: passo a passo:
 L3 = ( alphacz(1)*A^2 + alphacz(2)*A + alphacz(3)*eye(size(A)) )*inv(Ob)*[zeros(size(A,1)-1,1);  1];
 
 
 %% Projeto do Controlador:
-% Retirado de Ex_ProjetoRegulador.m
 
-% Controlabilidade
+% Validando se o sistema é controlável
 Co = [B A*B];
 if (size(A,1)-rank(Co)==0)
     disp('O sistema e controlavel.');
@@ -127,7 +107,7 @@ p2s = -zetawnmin - i*wn*sqrt(1-zeta^2);
 pc1z = exp(p1s*Ts);
 pc2z = exp(p2s*Ts);
 
-% Equacao caracteristica desejada:
+% Equacao caracteristica esperada:
 alphacontz = conv([1 -p1z],[1 -p2z]);
 
 % Alocacao de polos:
@@ -143,14 +123,15 @@ xmf = [x0 x0]; % Estado verdadeiro
 ymf = C*x0;
 xhat = [10 10]'; % Estado estimado
 for k = 2:N
-    % Observador de estados:
+    % Observador:
     xhat(:,k) = A*xhat(:,k-1) + B*u(k-1)  +  L3*(ymf(:,k-1) - C*xhat(:,k-1));
     % Lei de controle:
     u(k) = -K3*xhat(:,k);
-    % Processo controlado (simulacao):
-    xmf(:,k+1) = A*xmf(:,k) + B*u(k); % Observe que o modelo do mesmo processo usado nesse projeto nao e o mesmo dos outros casos
+    % Processo controlado:
+    xmf(:,k+1) = A*xmf(:,k) + B*u(k);
     ymf(:,k+1) = C*xmf(:,k+1);
 end
+
 figure; subplot(311); stairs(kT, xmf(1,1:end-1), 'b'); hold on; stairs(kT, xhat(1,:), 'r'); xlabel('kT (s)'); ylabel('x_1(k)'); legend('x_1(k)','xhat_1(k)')
         subplot(312); stairs(kT, xmf(2,1:end-1), 'b'); hold on; stairs(kT, xhat(2,:), 'r'); xlabel('kT (s)'); ylabel('x_2(k)');
         subplot(313); stairs(kT, u, 'b'); xlabel('kT (s)'); ylabel('u(k)');
