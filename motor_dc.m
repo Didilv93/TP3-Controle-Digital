@@ -51,27 +51,9 @@ p2z = 0.5 - i*0.5;
 % Equacao caracteristica desejada:
 alphacz = conv([1 -p1z],[1 -p2z]);
 
-%% Projeto pelo Metodo 1 - Identidade Polinomial
-
-syms z l1 l2
-L = [l1 l2]';
-
-ECmf = z*eye(size(A)) - A + L*C;
-det(ECmf)
-% A partir da inspecao visual da expressao (det(ECmf) e ordenar) acima, temos:
-alpha = [1    (l2-2)    (1 - l2 + Ts*l1)];
-
-% Comparar alpha com alphacz e montar sistema de 2a ordem para encontrar l1
-% e l2:
-L1 = (inv([0 1; Ts -1])*[(2+alphacz(2))  (-1+alphacz(3))]'); 
-
-% Conferindo os polos da MF:
-eig(A - L1*C)
-
-
 %% Projeto pela Formula de Ackerman
 
-L3 = ( alphacz(1)*A^2 + alphacz(2)*A + alphacz(3)*eye(size(A)) )*inv(Ob)*[zeros(size(A,1)-1,1);  1];
+L = ( alphacz(1)*A^2 + alphacz(2)*A + alphacz(3)*eye(size(A)) )*inv(Ob)*[zeros(size(A,1)-1,1);  1];
 
 
 %% Projeto do Controlador:
@@ -111,7 +93,7 @@ pc2z = exp(p2s*Ts);
 alphacontz = conv([1 -p1z],[1 -p2z]);
 
 % Alocacao de polos:
-K3 = [zeros(1,size(A,1)-1)  1]*inv(Co)*( A^2 + alphacontz(2)*A + alphacontz(3)*eye(size(A)) );
+K = [zeros(1,size(A,1)-1)  1]*inv(Co)*( A^2 + alphacontz(2)*A + alphacontz(3)*eye(size(A)) );
 
 %% Simulacao:
 
@@ -123,10 +105,8 @@ xmf = [x0 x0]; % Estado verdadeiro
 ymf = C*x0;
 xhat = [10 10]'; % Estado estimado
 for k = 2:N
-    % Observador:
-    xhat(:,k) = A*xhat(:,k-1) + B*u(k-1)  +  L3*(ymf(:,k-1) - C*xhat(:,k-1));
-    % Lei de controle:
-    u(k) = -K3*xhat(:,k);
+    xhat(:,k) = A*xhat(:,k-1) + B*u(k-1)  +  L*(ymf(:,k-1) - C*xhat(:,k-1)); % Observador de estado:
+    u(k) = -K*xhat(:,k);  % Aplicando a lei de controle:
     % Processo controlado:
     xmf(:,k+1) = A*xmf(:,k) + B*u(k);
     ymf(:,k+1) = C*xmf(:,k+1);

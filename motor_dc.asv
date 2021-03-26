@@ -71,7 +71,7 @@ eig(A - L1*C)
 
 %% Projeto pela Formula de Ackerman
 
-L3 = ( alphacz(1)*A^2 + alphacz(2)*A + alphacz(3)*eye(size(A)) )*inv(Ob)*[zeros(size(A,1)-1,1);  1];
+L = ( alphacz(1)*A^2 + alphacz(2)*A + alphacz(3)*eye(size(A)) )*inv(Ob)*[zeros(size(A,1)-1,1);  1];
 
 
 %% Projeto do Controlador:
@@ -111,7 +111,7 @@ pc2z = exp(p2s*Ts);
 alphacontz = conv([1 -p1z],[1 -p2z]);
 
 % Alocacao de polos:
-K3 = [zeros(1,size(A,1)-1)  1]*inv(Co)*( A^2 + alphacontz(2)*A + alphacontz(3)*eye(size(A)) );
+K = [zeros(1,size(A,1)-1)  1]*inv(Co)*( A^2 + alphacontz(2)*A + alphacontz(3)*eye(size(A)) );
 
 %% Simulacao:
 
@@ -123,14 +123,15 @@ xmf = [x0 x0]; % Estado verdadeiro
 ymf = C*x0;
 xhat = [10 10]'; % Estado estimado
 for k = 2:N
-    % Observador de estados:
-    xhat(:,k) = A*xhat(:,k-1) + B*u(k-1)  +  L3*(ymf(:,k-1) - C*xhat(:,k-1));
+    % Observador:
+    xhat(:,k) = A*xhat(:,k-1) + B*u(k-1)  +  L*(ymf(:,k-1) - C*xhat(:,k-1));
     % Lei de controle:
-    u(k) = -K3*xhat(:,k);
-    % Processo controlado (simulacao):
+    u(k) = -K*xhat(:,k);
+    % Processo controlado:
     xmf(:,k+1) = A*xmf(:,k) + B*u(k);
     ymf(:,k+1) = C*xmf(:,k+1);
 end
+
 figure; subplot(311); stairs(kT, xmf(1,1:end-1), 'b'); hold on; stairs(kT, xhat(1,:), 'r'); xlabel('kT (s)'); ylabel('x_1(k)'); legend('x_1(k)','xhat_1(k)')
         subplot(312); stairs(kT, xmf(2,1:end-1), 'b'); hold on; stairs(kT, xhat(2,:), 'r'); xlabel('kT (s)'); ylabel('x_2(k)');
         subplot(313); stairs(kT, u, 'b'); xlabel('kT (s)'); ylabel('u(k)');
